@@ -7,4 +7,5 @@ git:
   depth: 10
 
 script:
+    - ./build.sh generate
     - ./build.sh ci
