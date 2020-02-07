@@ -25,22 +25,17 @@ RUN set -xe \
     && cd /tmp \
     && git clone ${GITLAB_GIT_ZH} gitlab \
     && cd gitlab \
-    && export IGNORE_DIRS=':!qa :!spec :!features :!.gitignore :!locale :!app/assets/ :!vendor/assets/' \
-    && git diff --diff-filter=d v11.10.4..origin/11-10-stable-zh -- . ${IGNORE_DIRS} > ../zh_CN.diff \
+    && export IGNORE_DIRS=':!qa :!spec :!features :!.gitignore :!.gitlab :!locale :!app/assets/ :!vendor/assets/' \
+    && git diff --diff-filter=d v11.10.4..v11.10.4-zh -- . ${IGNORE_DIRS} > ../zh_CN.diff \
     && echo " # Patching ..." \
     && patch -d ${GITLAB_DIR} -p1 < ../zh_CN.diff \
     && echo " # Copy assets files ..." \
-    && git checkout 11-10-stable-zh \
+    && git checkout v11.10.4-zh \
     && cp -R locale ${GITLAB_DIR}/ \
     && mkdir -p ${GITLAB_DIR}/app \
     && cp -R app/assets ${GITLAB_DIR}/app/ \
     && mkdir -p ${GITLAB_DIR}/vendor \
     && cp -R vendor/assets ${GITLAB_DIR}/vendor/
-
-RUN set -xe \
-    && echo " # Install missing Gem packages ..." \
-    && cd ${GITLAB_DIR} \
-    && bundle install
 
 RUN set -xe \
     && echo " # Regenerating the assets" \
@@ -49,7 +44,6 @@ RUN set -xe \
     && cp config/database.yml.postgresql config/database.yml \
     && cp config/secrets.yml.example config/secrets.yml \
     && rm -rf public/assets \
-    && export REVISION=$(cat ${GITLAB_DIR}/REVISION) \
     && export NODE_ENV=production \
     && export RAILS_ENV=production \
     && export SETUP_DB=false \
@@ -59,15 +53,15 @@ RUN set -xe \
     && export NO_COMPRESSION=true \
     && export NO_PRIVILEGE_DROP=true \
     && export NODE_OPTIONS=--max-old-space-size=4086 \
-    && yarn install \
-    && bundle exec rake gettext:compile \
-    && bundle exec rake gitlab:assets:compile
+    && yarn install --frozen-lockfile \
+    && bin/bundle install --frozen \
+    && bin/rake gettext:compile \
+    && bin/rake gitlab:assets:compile
 
 RUN set -xe \
     && echo " # Cleaning ..." \
     && yarn cache clean \
-    && rm -rf \
-        log \
+    && rm -rf log \
         tmp \
         config/gitlab.yml \
         config/database.yml \
@@ -100,7 +94,7 @@ ENV GITLAB_VERSION=v11.10.4
 ENV GITLAB_DIR=/opt/gitlab/embedded/service/gitlab-rails
 ENV GITLAB_GIT_ZH=https://gitlab.com/xhang/gitlab.git
 ENV GITLAB_GIT_COMMIT_UPSTREAM=v11.10.4
-ENV GITLAB_GIT_COMMIT_ZH=11-10-stable-zh
+ENV GITLAB_GIT_COMMIT_ZH=v11.10.4-zh
 
 COPY --from=builder ${GITLAB_DIR}/app                   ${GITLAB_DIR}/app
 COPY --from=builder ${GITLAB_DIR}/public                ${GITLAB_DIR}/public
